@@ -1,1 +1,1 @@
-{"foo": "bar"}
+{ "foo": "bar", "arr": [1, "test_string", { "foo2": "bar2" }, ["nested", "array"]] }

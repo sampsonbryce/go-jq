@@ -2,6 +2,7 @@ package filter
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -35,7 +36,7 @@ func (e PathError) Unwrap() error {
 }
 
 type PathAccessor interface {
-	Access(input *interface{}) (*interface{}, error)
+	Access(input JsonNode) (JsonNode, error)
 }
 
 type ObjectPathAccessor struct {
@@ -43,68 +44,80 @@ type ObjectPathAccessor struct {
 	key string
 }
 
-func (a ObjectPathAccessor) Access(input *interface{}) (*interface{}, error) {
-	if obj, ok := IsMap(*input); ok {
-		if val, ok := obj[a.key]; ok {
-			return &val, nil
-		}
+func (a ObjectPathAccessor) Access(input JsonNode) (JsonNode, error) {
+	if input.IsLeaf() {
+		return nil, PathAccessorError{Accessor: a.raw}
+	}
+
+	val, err := input.At(a.key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return val, nil
+}
+
+type ArrayPathAccessor struct {
+	raw   string
+	index int
+}
+
+func (a *ArrayPathAccessor) Access(input JsonNode) (JsonNode, error) {
+	if input.IsLeaf() {
+		return nil, PathAccessorError{Accessor: a.raw}
+	}
+
+	val, err := input.At(a.index)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return val, nil
+}
+
+type ArrayIteratorAccessor struct {
+	raw string
+}
+
+func (a *ArrayIteratorAccessor) Access(input JsonNode) (JsonNode, error) {
+	if input.IsLeaf() {
+		return nil, PathAccessorError{Accessor: a.raw}
+	}
+
+	if val, ok := input.(ArrayJsonNode); ok {
+		return val, nil
 	}
 
 	return nil, PathAccessorError{Accessor: a.raw}
 }
 
-// type ArrayPathAccessor struct {
-// 	raw   string
-// 	index int
-// }
+func createArrayAccessor(accessorString string) (PathAccessor, error) {
+	indexString := strings.Trim(accessorString, "[]")
 
-// func (a *ArrayPathAccessor) Access(input *interface{}) (*interface{}, error) {
-// 	if slice, ok := IsSlice(input); ok {
-// 		if len(slice) > a.index {
-// 			return &slice[a.index], nil
-// 		}
-// 	}
+	if len(indexString) == 0 {
+		return &ArrayIteratorAccessor{raw: accessorString}, nil
+	}
 
-// 	return nil, PathAccessorError{Accessor: a.raw}
-// }
+	i, err := strconv.Atoi(indexString)
 
-// type ArrayIteratorAccessor struct {
-// 	raw string
-// }
+	if err != nil {
+		return nil, PathAccessorError{Accessor: accessorString}
+	}
 
-// func (a *ArrayIteratorAccessor) Access(input *interface{}) (*interface{}, error) {
-// 	if slice, ok := IsSlice(input); ok {
-// 		return &slice, nil
-// 	}
-
-// 	return nil, PathAccessorError{Accessor: a.raw}
-// }
-
-// func createArrayAccessor(accessorString string) (PathAccessor, error) {
-// 	indexString := strings.Trim(accessorString, "[]")
-
-// 	if len(indexString) == 0 {
-// 		return ArrayIteratorAccessor{raw: accessorString}, nil
-// 	}
-
-// 	i, err := strconv.Atoi(indexString)
-
-// 	if err != nil {
-// 		return nil, PathAccessorError{Accessor: accessorString}
-// 	}
-
-// 	return ArrayPathAccessor{index: i, raw: accessorString}, nil
-// }
+	return &ArrayPathAccessor{index: i, raw: accessorString}, nil
+}
 
 func createPathAccessor(accessorString string) (PathAccessor, error) {
 	if strings.HasPrefix(accessorString, "[") && strings.HasSuffix(accessorString, "]") {
-		// accessor, err := createArrayAccessor(accessorString)
+		accessor, err := createArrayAccessor(accessorString)
 
-		// if err != nil {
-		// 	return nil, err
-		// }
+		if err != nil {
+			return nil, err
+		}
 
-		// return accessor, nil
+		return accessor, nil
 	}
 
 	return ObjectPathAccessor{raw: accessorString, key: accessorString}, nil
@@ -114,7 +127,7 @@ type PathFilter struct {
 	accessors []PathAccessor
 }
 
-func (f *PathFilter) Filter(input *interface{}) (*interface{}, error) {
+func (f *PathFilter) Filter(input JsonNode) (JsonNode, error) {
 	current := input
 	for _, accessor := range f.accessors {
 		result, err := accessor.Access(current)

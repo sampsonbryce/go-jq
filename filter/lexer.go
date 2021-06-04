@@ -107,7 +107,6 @@ func Lex(text string) string {
 	newText := ""
 	for i < length {
 		currentChar := runes[i]
-		fmt.Printf("Checking char %s\n", string(currentChar))
 
 		if is_dot(currentChar) {
 			newText += T_DOT + " "

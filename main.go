@@ -37,7 +37,10 @@ func main() {
 
 	filterString := os.Args[1]
 
-	fmt.Println(filter.Lex(filterString))
+	lexedString := filter.Lex(filterString)
+	fmt.Println(lexedString)
+	tree := filter.Parse(lexedString)
+	tree.Print()
 	// input, err := readInput()
 
 	// if err != nil {

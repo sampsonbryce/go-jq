@@ -37,39 +37,40 @@ func main() {
 
 	filterString := os.Args[1]
 
-	input, err := readInput()
+	fmt.Println(filter.Lex(filterString))
+	// input, err := readInput()
 
-	if err != nil {
-		log.Fatal("failed to parse input: ", err)
-	}
+	// if err != nil {
+	// 	log.Fatal("failed to parse input: ", err)
+	// }
 
-	filters, err := filter.CreateFilters(filterString)
+	// filters, err := filter.CreateFilters(filterString)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	fmt.Printf("Got input %#v\n", input)
+	// fmt.Printf("Got input %#v\n", input)
 
-	rootNode, err := filter.CreateJsonNode(&input)
+	// rootNode, err := filter.CreateJsonNode(&input)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	resultNode, err := processInput(rootNode, filters)
+	// resultNode, err := processInput(rootNode, filters)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	marshalled, err := resultNode.Marshal()
+	// marshalled, err := resultNode.Marshal()
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	fmt.Println(string(marshalled))
+	// fmt.Println(string(marshalled))
 }
 
 func processInput(input filter.JsonNode, filters []filter.Filter) (filter.JsonNode, error) {

@@ -10,6 +10,9 @@ import (
 
 const TOKEN_RUNES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 
+const ACCESS_NAME = "ACCESS"
+const COLLECT_NAME = "T_COLL"
+
 type Node struct {
 	name     string
 	value    string
@@ -33,7 +36,7 @@ type Tree struct {
 }
 
 func (t *Tree) AddNode(name string, value string) *Node {
-	node := Node{name: name, value: value}
+	node := Node{name: name, value: value, parent: t.currentNode.parent}
 	// fmt.Printf("Current node %p\n", t.currentNode)
 	t.currentNode.children = append(t.currentNode.children, &node)
 
@@ -43,6 +46,9 @@ func (t *Tree) AddNode(name string, value string) *Node {
 
 func (t *Tree) AddNodeAndRecurse(name string, value string) *Node {
 	node := t.AddNode(name, value)
+
+	// Overwrite parent since we are nesting
+	node.parent = t.currentNode
 
 	// fmt.Println("Recursing")
 	t.currentNode = node
@@ -59,7 +65,7 @@ func (t *Tree) Print() {
 }
 
 func createTree() Tree {
-	root := Node{name: "ROOT"}
+	root := Node{name: "ROOT", parent: nil}
 	tree := Tree{root: &root, currentNode: &root}
 
 	return tree
@@ -160,8 +166,15 @@ func Parse(text string) Tree {
 			// fmt.Printf("Got token %s\n", token)
 			i = j // +2 to skip extra whitespace
 			// fmt.Printf("New i %d\n", i)
+
 			value := ""
-			recurse := isRecurseToken(token)
+			name := token
+			recurse := false
+			if isRecurseToken(token) {
+				name = getRecurseTokenName(token)
+				recurse = true
+			}
+
 			end := isEndToken(token)
 
 			if isStringToken(token) {
@@ -169,20 +182,29 @@ func Parse(text string) Tree {
 				i = j
 				value = stringValue
 			} else if isValueToken(token) {
-				rawValue, j := consumeValue(runes, i+2)
+				rawValue, j := consumeValue(runes, i+1)
 				i = j
 				value = rawValue
+			} else if token == T_DOT {
+				// Skip dot notation if we are already in an access node
+				if tree.currentNode.name == ACCESS_NAME {
+					i += 1
+					continue
+				}
+
+				name = ACCESS_NAME
+				recurse = true
 			}
 
 			if end {
 				tree.EndNode()
 			} else if recurse {
-				tree.AddNodeAndRecurse(getRecurseTokenName(token), value)
+				tree.AddNodeAndRecurse(name, value)
 			} else {
-				tree.AddNode(token, value)
+				tree.AddNode(name, value)
 			}
 		} else if currentChar == ' ' {
-			// pass
+			// skip whitespace
 		} else {
 			log.Fatal(fmt.Printf("Unexpected char '%s' at char %d\n", string(currentChar), i))
 		}

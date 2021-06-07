@@ -41,11 +41,15 @@ func main() {
 	fmt.Println(lexedString)
 	tree := filter.Parse(lexedString)
 	tree.Print()
-	// input, err := readInput()
+	input, err := readInput()
 
-	// if err != nil {
-	// 	log.Fatal("failed to parse input: ", err)
-	// }
+	if err != nil {
+		log.Fatal("failed to parse input: ", err)
+	}
+
+	response := filter.ExecTree(&input, &tree)
+	fmt.Printf("Response %v\n", response)
+	marshalled, err := response.Marshal()
 
 	// filters, err := filter.CreateFilters(filterString)
 
@@ -69,11 +73,11 @@ func main() {
 
 	// marshalled, err := resultNode.Marshal()
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// fmt.Println(string(marshalled))
+	fmt.Println(string(marshalled))
 }
 
 func processInput(input filter.JsonNode, filters []filter.Filter) (filter.JsonNode, error) {
